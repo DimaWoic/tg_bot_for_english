@@ -185,7 +185,7 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_file = await update.message.effective_attachment.get_file()
     await new_file.download_to_drive(str(chat_id))
 
-    with open(str(chat_id), 'r') as file:
+    with open(f"/home/bot/sqlite/{chat_id}", 'r') as file:
         user_file = file.read()
     phrase_list = user_file.split('\n')
     not_added_phrases = ''
@@ -225,7 +225,7 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
                   f"Following collocations were not added:\n" \
                   f"{not_added_phrases}"
     try:
-        os.remove(str(chat_id))
+        os.remove(f"/home/bot/sqlite/{chat_id}")
         logging.info('Temporary file %s was deleted', str(chat_id))
     except FileNotFoundError:
         logging.info('Temporary file %s was not deleted', str(chat_id))
