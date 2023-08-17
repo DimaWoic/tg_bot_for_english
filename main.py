@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+
 from sqlalchemy import update
 from telegram import Update
 from telegram.ext import (
@@ -9,15 +11,17 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     filters,
-    CallbackContext
+    CallbackContext,
 )
+
 from methods.tables import (User,
                             Collocation,
                             connection)
 from random import randint
-
+import json
 
 TOKEN = os.getenv("TOKEN")
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -31,16 +35,16 @@ reply_keyboard = [
 help_message = "I support following commands:\n" \
                 "/start - start using\n" \
                 "/add - add your collocation\n" \
-                "/set - for setup reminder\n" \
                 "/edit - edit collocation\n" \
                 "/list - list all collocations\n" \
                 "/schedule_reminder - set schedule of reminds\n" \
                 "/stop_reminder - stop reminder\n" \
+                "/upload - stop reminder\n" \
                 "/help - for help"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = connection.query(User.chat_id == update.effective_chat.id).filter_by().all()
+    user = connection.query(User).filter(User.chat_id == update.effective_chat.id)
     logging.info("users %s", user)
     if user.__len__() == 0:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="So, let's meet! "
@@ -118,6 +122,9 @@ async def phrases_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = ''
     for collocation in collocations:
         message += f"{collocation.collocation} - {collocation.explanation}\n"
+
+    if message == '':
+        message = "Phrases hadn't been added yet."
     await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 
@@ -168,6 +175,64 @@ async def stop_remind(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Reminder already stopped")
 
 
+async def upload_offering(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Upload your file with list of words")
+    return 'UPLOAD'
+
+
+async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    new_file = await update.message.effective_attachment.get_file()
+    await new_file.download_to_drive(str(chat_id))
+
+    with open(str(chat_id), 'r') as file:
+        user_file = file.read()
+    phrase_list = user_file.split('\n')
+    not_added_phrases = ''
+    phrases_added = ''
+    for phrase in phrase_list:
+        phrase = phrase.replace(" ", '')
+        if phrase != '' and re.match('[a-zA-Z\']*-.*', phrase):
+            word = phrase.split('-')[0]
+            translation = phrase.split('-')[1]
+            collocations = connection.query(Collocation).filter(Collocation.author_id == context._chat_id,
+                                                                Collocation.collocation == word).all()
+            for col in collocations:
+                print(col.collocation)
+            if len(collocations) == 0:
+                phrases_added += f"{phrase}\n"
+                collocation = Collocation()
+                collocation.author_id = update.effective_chat.id
+                collocation.collocation = word
+                collocation.explanation = translation
+                connection.add(collocation)
+                connection.commit()
+                connection.close()
+            else:
+                not_added_phrases += f"{phrase} - already exist\n"
+        elif not re.match('[a-zA-Z\']*-.*', phrase):
+            not_added_phrases += f"{phrase} - the phrase doesn't match the template(allowed symbols a-z,A-Z,')\n"
+
+    if phrases_added == "":
+        message = f"Following collocations were not added:\n" \
+                  f"{not_added_phrases}"
+    elif phrases_added != "" and not_added_phrases == "":
+        message = f"Collocations added:\n" \
+                   f"{phrases_added}"
+    else:
+        message = f"Collocations added:\n" \
+                  f"{phrases_added}" \
+                  f"Following collocations were not added:\n" \
+                  f"{not_added_phrases}"
+    try:
+        os.remove(str(chat_id))
+        logging.info('Temporary file %s was deleted', str(chat_id))
+    except FileNotFoundError:
+        logging.info('Temporary file %s was not deleted', str(chat_id))
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+
+
 if __name__ == '__main__':
     if TOKEN is None:
         logging.info("TOKEN variable is not specified.")
@@ -204,11 +269,22 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler('cancel', done)]
     )
 
+    file_upload_handler = CommandHandler('upload', upload_offering)
+
+    uploader_conv = ConversationHandler(
+        entry_points=[file_upload_handler],
+        states={
+            "UPLOAD": [MessageHandler(filters.Document.MimeType("text/plain"), upload_file)]
+        },
+        fallbacks=[CommandHandler('cancel', done)]
+    )
+
     stop_reminder_handler = CommandHandler('stop_reminder', stop_remind)
     application.add_handler(meeting_handler)
     application.add_handler(collocation_handler)
     application.add_handler(phrases_list_handler)
     application.add_handler(stop_reminder_handler)
     application.add_handler(sheduler_handler)
+    application.add_handler(uploader_conv)
 
     application.run_polling()
