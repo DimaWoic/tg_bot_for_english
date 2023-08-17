@@ -44,7 +44,7 @@ help_message = "I support following commands:\n" \
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = connection.query(User).filter(User.chat_id == update.effective_chat.id)
+    user = connection.query(User).filter(User.chat_id == update.effective_chat.id).all()
     logging.info("users %s", user)
     if user.__len__() == 0:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="So, let's meet! "
