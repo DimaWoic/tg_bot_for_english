@@ -191,8 +191,7 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     not_added_phrases = ''
     phrases_added = ''
     for phrase in phrase_list:
-        phrase = phrase.replace(" ", '')
-        if phrase != '' and re.match('[a-zA-Z\']*-.*', phrase):
+        if phrase != '' and re.match('[a-zA-Z\'\\s]*-.*', phrase):
             word = phrase.split('-')[0]
             translation = phrase.split('-')[1]
             collocations = connection.query(Collocation).filter(Collocation.author_id == context._chat_id,
@@ -210,7 +209,7 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 connection.close()
             else:
                 not_added_phrases += f"{phrase} - already exist\n"
-        elif not re.match('[a-zA-Z\']*-.*', phrase):
+        elif not re.match('[a-zA-Z\'\\s]*-.*', phrase):
             not_added_phrases += f"{phrase} - the phrase doesn't match the template(allowed symbols a-z,A-Z,')\n"
 
     if phrases_added == "":
