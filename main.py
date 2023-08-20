@@ -192,9 +192,9 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phrases_added = ''
     for phrase in phrase_list:
         phrase = phrase.replace(" ", '')
-        if phrase != '' and re.match('[a-zA-Z\']*-.*', phrase):
-            word = phrase.split('-')[0]
-            translation = phrase.split('-')[1]
+        if phrase != '' and re.match("[a-zA-Z\s']*:.*", phrase):
+            word = phrase.split(':')[0]
+            translation = phrase.split(':')[1]
             collocations = connection.query(Collocation).filter(Collocation.author_id == context._chat_id,
                                                                 Collocation.collocation == word).all()
             for col in collocations:
