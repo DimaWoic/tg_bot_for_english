@@ -191,7 +191,6 @@ async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     not_added_phrases = ''
     phrases_added = ''
     for phrase in phrase_list:
-        phrase = phrase.replace(" ", '')
         if phrase != '' and re.match("[a-zA-Z\s']*:.*", phrase):
             word = phrase.split(':')[0]
             translation = phrase.split(':')[1]
