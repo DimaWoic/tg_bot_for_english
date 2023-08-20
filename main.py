@@ -183,7 +183,7 @@ async def upload_offering(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     new_file = await update.message.effective_attachment.get_file()
-    await new_file.download_to_drive(str(chat_id))
+    await new_file.download_to_drive(f"/home/bot/sqlite/{chat_id}")
 
     with open(f"/home/bot/sqlite/{chat_id}", 'r') as file:
         user_file = file.read()
