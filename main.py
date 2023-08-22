@@ -240,7 +240,7 @@ if __name__ == '__main__':
                   .read_timeout(30) \
                   .write_timeout(30) \
                   .get_updates_write_timeout(30) \
-                  .get_updates_read_timeout(30)
+                  .get_updates_read_timeout(30).build()
     start_handler = CommandHandler('start', start)
     help_handler = CommandHandler('help', help_cmd)
     greeting_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), greeting)
