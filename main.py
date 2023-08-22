@@ -236,7 +236,11 @@ if __name__ == '__main__':
     if TOKEN is None:
         logging.info("TOKEN variable is not specified.")
         exit(1)
-    application = Application.builder().token(TOKEN).build()
+    application = Application.builder().token(TOKEN) \
+                  .read_timeout(30) \
+                  .write_timeout(30) \
+                  .get_updates_write_timeout(30) \
+                  .get_updates_read_timeout(30)
     start_handler = CommandHandler('start', start)
     help_handler = CommandHandler('help', help_cmd)
     greeting_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), greeting)
