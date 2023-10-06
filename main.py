@@ -258,7 +258,7 @@ if __name__ == '__main__':
     collocation_handler = ConversationHandler(
         entry_points=[CommandHandler("add", add)],
         states={
-            'PHRASE': [MessageHandler(filters.TEXT), add_phrase)],
+            'PHRASE': [MessageHandler(filters.TEXT, add_phrase)],
             'TRANSLATION': [MessageHandler(filters.TEXT, add_transaltion)]
         },
         fallbacks=[CommandHandler('done', done)]
